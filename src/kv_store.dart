@@ -104,6 +104,26 @@ typedef StoreClearDart = void Function(Pointer<Store>);
 final _storeClear = kvlib
   .lookupFunction<StoreClearC, StoreClearDart>('store_clear');
 
+// Dart Wrapper
+class KeyValueStore {
+  Pointer<Store>? _store;
+
+  // constructor
+  KeyValueStore() {
+    _store = _storeCreate();
+    if (_store == nullptr) {
+      throw Exception('Failed to create store');
+    }
+  }
+
+  /// null safety check
+  void _checkStore() {
+    if (_store == null || _store == nullptr) {
+      throw Exception('Store does not exist (disposed or never created)');
+    }
+  }
+}
+
 void main() {
   final lib = kvlib;
   

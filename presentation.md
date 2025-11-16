@@ -12,6 +12,7 @@ Building Dart FFI bindings for a C key-value store library
 
 1. build dylib instead of static c lib
 2. create FFI bindings
+3. Dart wrapper
 
 <!-- end_slide -->
 
@@ -116,3 +117,11 @@ end_line: 37
 | `struct store*` | `Pointer<Store>` | `Pointer<Store>` |
 
 **Note:** `Size` is platform-dependent (32-bit or 64-bit)
+
+<!-- end_slide -->
+
+# 3. Dart Wrapper
+
+## constructor
+
+### null Safety check

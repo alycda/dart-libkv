@@ -232,6 +232,10 @@ void main() {
     store.put('language', 'Dart');
     
     // C: store_get
+    print('\nGet values...');
+    print('name: ${store.get('name')}, ');
+    print('language: ${store.get('language')}');
+    
     // C: store_delete
     // C: store_exists
     // C: store_size

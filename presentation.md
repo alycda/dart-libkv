@@ -149,3 +149,7 @@ end_line: 37
 <!-- end_slide -->
 
 # 3.7 Clear
+
+<!-- end_slide -->
+
+# 3.8 Dispose

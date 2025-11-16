@@ -203,6 +203,14 @@ class KeyValueStore {
     _checkStore();
     _storeClear(_store!);
   }
+
+  /// Destroy and free resources
+  void dispose() {
+    if (_store != null && _store != nullptr) {
+      _storeDestroy(_store!);
+      _store = null;
+    }
+  }
   
   /// null safety check
   void _checkStore() {

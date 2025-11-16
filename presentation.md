@@ -141,3 +141,7 @@ end_line: 37
 <!-- end_slide -->
 
 # 3.5 Exists
+
+<!-- end_slide -->
+
+# 3.6 get size

@@ -190,6 +190,13 @@ class KeyValueStore {
       malloc.free(keyPtr);
     }
   }
+
+  /// Get number of entries
+  int get size {
+    _checkStore();
+
+    return _storeSize(_store!);
+  }
   
   /// null safety check
   void _checkStore() {

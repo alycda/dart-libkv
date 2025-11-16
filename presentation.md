@@ -133,3 +133,7 @@ end_line: 37
 <!-- end_slide -->
 
 # 3.3 Get
+
+<!-- end_slide -->
+
+# 3.4 Delete

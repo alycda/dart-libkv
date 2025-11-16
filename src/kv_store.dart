@@ -165,6 +165,19 @@ class KeyValueStore {
       malloc.free(sizePtr);
     }
   }
+
+  /// Delete a key
+  bool delete(String key) {
+    _checkStore();
+
+    final keyPtr = key.toNativeUtf8();
+    try {
+      final result = _storeDelete(_store!, keyPtr);
+      return result == StoreError.ok;
+    } finally {
+      malloc.free(keyPtr);
+    }
+  }
   
   /// null safety check
   void _checkStore() {

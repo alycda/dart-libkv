@@ -250,6 +250,11 @@ void main() {
     }
     
     // C: store_clear
+    store.clear();
+
+    if (store.size != 0) {
+      throw Exception("memory leak?");
+    }
   } finally {
     // C: store_destroy
     store.dispose();

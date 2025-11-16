@@ -1,2 +1,3 @@
+- changed the build from static to dynamic
 - added Justfile task runner
 - copied C src files (instead of git submodule)

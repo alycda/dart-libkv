@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -std=c11 -pedantic -D_POSIX_C_SOURCE=200809L
+CFLAGS = -Wall -Wextra -Werror -std=c11 -pedantic -D_POSIX_C_SOURCE=200809L -fPIC
 LDFLAGS =
 INCLUDES = -Iinclude
 
@@ -21,7 +21,7 @@ EXAMPLE_DIR = examples
 DOCS_DIR = docs
 
 # Library
-LIB_NAME = libkv.a
+LIB_NAME = libkv.dylib
 LIB = $(LIB_DIR)/$(LIB_NAME)
 
 # Source files
@@ -46,7 +46,7 @@ $(BUILD_DIR) $(LIB_DIR):
 
 # Build library
 $(LIB): $(OBJECTS) | $(LIB_DIR)
-	ar rcs $@ $^
+	$(CC) -shared -o $@ $^ $(LDFLAGS)
 
 # Compile source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)

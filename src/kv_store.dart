@@ -17,6 +17,25 @@ final DynamicLibrary kvlib = DynamicLibrary.open(_getLibraryPath());
 
 final class Store extends Opaque {}
 
+class StoreError {
+  static const int ok =        0;
+  static const int noMem =    -1;
+  static const int notFound = -2;
+  static const int invalid =  -3;
+  static const int exists =   -4;
+
+  static String message(int code) {
+    switch (code) {
+      case ok:        return 'Success';
+      case noMem:     return 'Out of memory';
+      case notFound:  return 'Key not found';
+      case invalid:   return 'Invalid parameter';
+      case exists:    return 'Key already exists';
+      default:        return 'Unknown error: $code';
+    }
+  }
+}
+
 void main() {
   final lib = kvlib;
   

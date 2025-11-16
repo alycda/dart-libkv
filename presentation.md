@@ -44,3 +44,21 @@ end_line: 49
 ```
 
 **Why?** Dart FFI requires dynamic libraries, not static archives.
+
+<!-- end_slide -->
+
+# Loading the Library: Cross-Platform Paths
+
+**Challenge:** Need to load the library on both macOS and Linux
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 6
+end_line: 16
+```
+
+**Key decisions:**
+- Use **absolute paths** (relative paths fail in Nix/hardened environments)
+- Detect platform at **runtime** (`Platform.isMacOS`)
+- Match Makefile platform detection for `.dylib` vs `.so`

@@ -20,8 +20,13 @@ TEST_DIR = tests
 EXAMPLE_DIR = examples
 DOCS_DIR = docs
 
-# Library
-LIB_NAME = libkv.dylib
+# Library - platform-specific extension
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    LIB_NAME = libkv.dylib
+else
+    LIB_NAME = libkv.so
+endif
 LIB = $(LIB_DIR)/$(LIB_NAME)
 
 # Source files

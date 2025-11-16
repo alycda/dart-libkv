@@ -2,6 +2,10 @@
 # note that the FIRST recipe is ALWAYS the default, the recipe name DOES NOT MATTER
 default: build run
 
+# Install Dart dependencies
+install:
+    dart pub get
+
 # Check C and Dart code
 check: test
     dart analyze

@@ -13,6 +13,7 @@ Building Dart FFI bindings for a C key-value store library
 1. build dylib instead of static c lib
 2. create FFI bindings
 3. Dart wrapper API
+4. Testing
 
 <!-- end_slide -->
 

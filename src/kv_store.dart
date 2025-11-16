@@ -221,7 +221,24 @@ class KeyValueStore {
 }
 
 void main() {
-  final lib = kvlib;
-  
-  print('Hello, World!');
+  // C: store_create
+  final store = KeyValueStore();
+  print('store: ${store}');
+
+  try {
+    // C: store_put
+    // C: store_get
+    // C: store_delete
+    // C: store_exists
+    // C: store_size
+    // C: store_clear
+  } finally {
+    // C: store_destroy
+    store.dispose();
+  }
+
+  // assert null pointer
+  if(store._store != null) {
+    throw Exception("Store was not destroyed");
+  }
 }

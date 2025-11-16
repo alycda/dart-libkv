@@ -227,6 +227,10 @@ void main() {
 
   try {
     // C: store_put
+    print('Put values...');
+    store.put('name', 'Alyssa');
+    store.put('language', 'Dart');
+    
     // C: store_get
     // C: store_delete
     // C: store_exists

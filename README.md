@@ -56,3 +56,5 @@ dart pub get
 ### Resources
 
 - https://learnxinyminutes.com/dart/
+- https://dart.dev/language
+- https://dart.dev/interop/c-interop

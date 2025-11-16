@@ -36,6 +36,12 @@ class StoreError {
   }
 }
 
+// C: store_create
+typedef StoreCreateC = Pointer<Store> Function();
+typedef StoreCreateDart = Pointer<Store> Function();
+final _storeCreate = kvlib
+  .lookupFunction<StoreCreateC, StoreCreateDart>('store_create');
+
 void main() {
   final lib = kvlib;
   

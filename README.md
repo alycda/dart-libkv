@@ -3,12 +3,15 @@
 ## Quickstart
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alycda/ditto-takehome)
 
-No installation required - everything is pre-configured.
+No installation required - **everything** is pre-configured for you.
 
 ## Prerequisites
 
 ### Required
 - **Dart SDK** - [Installation instructions](https://dart.dev/get-dart)
+
+### Preferred
+- Just command runner - [Installation instructions](https://github.com/casey/just?tab=readme-ov-file#installation)
 
 ### Development Environments
 
@@ -21,7 +24,7 @@ If you have Docker installed:
 2. Open this repository in VS Code
 3. Click "Reopen in Container" when prompted
 
-All dependencies will be automatically installed.
+**All dependencies will be automatically installed.**
 
 #### Option 3: Nix (For Nix Users)
 If you use Nix with direnv:
@@ -29,7 +32,7 @@ If you use Nix with direnv:
 direnv allow
 ```
 
-The development environment will load automatically.
+The development environment will load automatically **with all tools pre-installed**.
 
 See https://determinate.systems/blog/nix-direnv/ and https://github.com/nix-community/nix-direnv
 

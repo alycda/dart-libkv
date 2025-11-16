@@ -1,8 +1,14 @@
 {
   // https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/configuring-dev-containers/setting-a-minimum-specification-for-codespace-machines
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
   "features": {
-    "ghcr.io/devcontainers/features/nix:1": {}
+    "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": true
+    }
   },
-  "postStartCommand": "nix-shell -p dart"
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "20gb"
+  }
 }

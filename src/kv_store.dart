@@ -86,6 +86,12 @@ typedef StoreDeleteDart = int Function(Pointer<Store>, Pointer<Utf8>);
 final _storeDelete = kvlib
   .lookupFunction<StoreDeleteC, StoreDeleteDart>('store_delete');
 
+// C: store_exists
+typedef StoreExistsC = Bool Function(Pointer<Store>, Pointer<Utf8>);
+typedef StoreExistsDart = bool Function(Pointer<Store>, Pointer<Utf8>);
+final _storeExists = kvlib
+  .lookupFunction<StoreExistsC, StoreExistsDart>('store_exists');
+
 void main() {
   final lib = kvlib;
   

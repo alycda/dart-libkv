@@ -116,6 +116,24 @@ class KeyValueStore {
     }
   }
 
+  /// Store a key-value pair (value as string)
+  void put(String key, String value) {
+    _checkStore();
+    
+    final keyPtr = key.toNativeUtf8();
+    final valuePtr = value.toNativeUtf8();
+    
+    try {
+      final result = _storePut(_store!, keyPtr, valuePtr.cast(), valuePtr.length);
+      if (result != StoreError.ok) {
+        throw Exception('store_put failed: ${StoreError.message(result)}');
+      }
+    } finally {
+      malloc.free(keyPtr);
+      malloc.free(valuePtr);
+    }
+  }
+  
   /// null safety check
   void _checkStore() {
     if (_store == null || _store == nullptr) {

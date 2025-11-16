@@ -129,3 +129,7 @@ end_line: 37
 <!-- end_slide -->
 
 # 3.2 Put
+
+<!-- end_slide -->
+
+# 3.3 Get

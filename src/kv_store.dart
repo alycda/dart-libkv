@@ -133,6 +133,38 @@ class KeyValueStore {
       malloc.free(valuePtr);
     }
   }
+
+  /// Gets a value by key (returning a String)
+  String? get(String key) {
+    _checkStore();
+
+    final keyPtr = key.toNativeUtf8();
+    final valuePtrPtr = malloc.allocate<Pointer<Void>>(sizeOf<Pointer<Void>>());
+    final sizePtr = malloc.allocate<Size>(sizeOf<Size>());
+    
+    try {
+      final result = _storeGet(_store!, keyPtr, valuePtrPtr, sizePtr);
+      
+      if (result == StoreError.notFound) {
+        return null;
+      }
+      
+      if (result != StoreError.ok) {
+        throw Exception('store_get failed: ${StoreError.message(result)}');
+      }
+      
+      final valuePtr = valuePtrPtr.value;
+      final size = sizePtr.value;
+      
+      // Copy bytes from C memory (don't free - it's owned by the store)
+      final bytes = valuePtr.cast<Uint8>().asTypedList(size);
+      return String.fromCharCodes(bytes);
+    } finally {
+      malloc.free(keyPtr);
+      malloc.free(valuePtrPtr);
+      malloc.free(sizePtr);
+    }
+  }
   
   /// null safety check
   void _checkStore() {

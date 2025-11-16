@@ -145,3 +145,7 @@ end_line: 37
 <!-- end_slide -->
 
 # 3.6 get size
+
+<!-- end_slide -->
+
+# 3.7 Clear

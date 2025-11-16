@@ -197,6 +197,12 @@ class KeyValueStore {
 
     return _storeSize(_store!);
   }
+
+  /// Clear all entries
+  void clear() {
+    _checkStore();
+    _storeClear(_store!);
+  }
   
   /// null safety check
   void _checkStore() {

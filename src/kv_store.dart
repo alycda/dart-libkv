@@ -92,6 +92,12 @@ typedef StoreExistsDart = bool Function(Pointer<Store>, Pointer<Utf8>);
 final _storeExists = kvlib
   .lookupFunction<StoreExistsC, StoreExistsDart>('store_exists');
 
+// C: store_size
+typedef StoreSizeC = Size Function(Pointer<Store>);
+typedef StoreSizeDart = int Function(Pointer<Store>);
+final _storeSize = kvlib
+  .lookupFunction<StoreSizeC, StoreSizeDart>('store_size');
+
 void main() {
   final lib = kvlib;
   

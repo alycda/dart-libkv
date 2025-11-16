@@ -7,6 +7,7 @@
 - `just build` - build C lib
 - `just run` - run the dart app
 - `just check` - validate C and Dart
+- `just present` - terminal slideshow
 
 ## Quickstart
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alycda/ditto-takehome)
@@ -20,6 +21,7 @@ No installation required - **everything** is pre-configured for you.
 
 ### Preferred
 - Just command runner - [Installation instructions](https://github.com/casey/just?tab=readme-ov-file#installation)
+- Presenterm terminal slideshow - [Installation instructions](https://mfontanini.github.io/presenterm/install.html)
 
 ### Development Environments
 

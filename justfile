@@ -10,6 +10,9 @@ check: test
 run:
     dart src/kv_store.dart
 
+present:
+    presenterm presentation.md
+
 # Run C tests
 [working-directory: 'deps/kv']
 test: clean

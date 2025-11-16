@@ -4,6 +4,7 @@ pkgs.mkShell {
   buildInputs = [
     pkgs.dart
     pkgs.just
+    pkgs.presenterm
   ];
   
   shellHook = ''

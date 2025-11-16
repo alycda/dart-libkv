@@ -80,6 +80,12 @@ typedef StoreGetDart = int Function(
 final _storeGet = kvlib
   .lookupFunction<StoreGetC, StoreGetDart>('store_get');
 
+// C: store_delete
+typedef StoreDeleteC = Int32 Function(Pointer<Store>, Pointer<Utf8>);
+typedef StoreDeleteDart = int Function(Pointer<Store>, Pointer<Utf8>);
+final _storeDelete = kvlib
+  .lookupFunction<StoreDeleteC, StoreDeleteDart>('store_delete');
+
 void main() {
   final lib = kvlib;
   

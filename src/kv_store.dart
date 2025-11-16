@@ -98,6 +98,12 @@ typedef StoreSizeDart = int Function(Pointer<Store>);
 final _storeSize = kvlib
   .lookupFunction<StoreSizeC, StoreSizeDart>('store_size');
 
+// C: store_clear
+typedef StoreClearC = Void Function(Pointer<Store>);
+typedef StoreClearDart = void Function(Pointer<Store>);
+final _storeClear = kvlib
+  .lookupFunction<StoreClearC, StoreClearDart>('store_clear');
+
 void main() {
   final lib = kvlib;
   

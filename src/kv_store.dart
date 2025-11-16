@@ -243,6 +243,12 @@ void main() {
     print('name exists: ${store.exists('name')}');
     print('language exists: ${store.exists('language')}');
     // C: store_size
+    print('\nSize: ${store.size}');
+
+    if (store.size != 1) {
+      throw Exception("memory leak?");
+    }
+    
     // C: store_clear
   } finally {
     // C: store_destroy

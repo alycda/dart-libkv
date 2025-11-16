@@ -238,6 +238,8 @@ void main() {
     
     // C: store_delete
     // C: store_exists
+    print('name exists: ${store.exists('name')}');
+    print('language exists: ${store.exists('language')}');
     // C: store_size
     // C: store_clear
   } finally {

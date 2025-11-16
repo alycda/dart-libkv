@@ -5,9 +5,6 @@
 
 No installation required - everything is pre-configured.
 
-> **Note:** On first launch, you may need to run `direnv allow` to activate the Nix environment. 
-In Codespaces, this is done automatically during setup.
-
 ## Prerequisites
 
 ### Required

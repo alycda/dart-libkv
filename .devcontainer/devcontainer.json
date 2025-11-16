@@ -1,0 +1,8 @@
+{
+  // https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/configuring-dev-containers/setting-a-minimum-specification-for-codespace-machines
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/nix:1": {}
+  },
+  "postStartCommand": "nix-shell -p dart"
+}

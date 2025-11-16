@@ -15,6 +15,8 @@ String _getLibraryPath() {
 
 final DynamicLibrary kvlib = DynamicLibrary.open(_getLibraryPath());
 
+final class Store extends Opaque {}
+
 void main() {
   final lib = kvlib;
   

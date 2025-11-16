@@ -64,6 +64,22 @@ typedef StorePutDart = int Function(
 final _storePut = kvlib
   .lookupFunction<StorePutC, StorePutDart>('store_put');
 
+// C: store_get
+typedef StoreGetC = Int32 Function(
+  Pointer<Store>,         // store
+  Pointer<Utf8>,          // key
+  Pointer<Pointer<Void>>, // value_out
+  Pointer<Size>           // value_size_out
+);
+typedef StoreGetDart = int Function(
+  Pointer<Store>,         // store
+  Pointer<Utf8>,          // key
+  Pointer<Pointer<Void>>, // value_out
+  Pointer<Size>           // value_size_out
+);
+final _storeGet = kvlib
+  .lookupFunction<StoreGetC, StoreGetDart>('store_get');
+
 void main() {
   final lib = kvlib;
   

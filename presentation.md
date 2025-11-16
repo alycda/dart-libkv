@@ -137,3 +137,7 @@ end_line: 37
 <!-- end_slide -->
 
 # 3.4 Delete
+
+<!-- end_slide -->
+
+# 3.5 Exists

@@ -178,6 +178,18 @@ class KeyValueStore {
       malloc.free(keyPtr);
     }
   }
+
+  /// Check if Key exists
+  bool exists(String key) {
+    _checkStore();
+
+    final keyPtr = key.toNativeUtf8();
+    try {
+      return _storeExists(_store!, keyPtr);
+    } finally {
+      malloc.free(keyPtr);
+    }
+  }
   
   /// null safety check
   void _checkStore() {

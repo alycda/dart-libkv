@@ -237,6 +237,8 @@ void main() {
     print('language: ${store.get('language')}');
     
     // C: store_delete
+    store.delete('language');
+
     // C: store_exists
     print('name exists: ${store.exists('name')}');
     print('language exists: ${store.exists('language')}');

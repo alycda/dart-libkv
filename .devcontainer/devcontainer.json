@@ -10,6 +10,10 @@
   "remoteEnv": {
     "DIRENV_LOG_FORMAT": ""
   },
+  "mounts": [
+    "type=volume,target=/workspaces/${localWorkspaceFolderBasename}/.dart_tool" // anonymous volume
+    // "type=volume,source=dart-tool-${localWorkspaceFolderBasename},target=/workspaces/${localWorkspaceFolderBasename}/.dart_tool" // named volume (persists across rebuilds)
+  ],
   "customizations": {
 		// Configure properties specific to VS Code. See https://containers.dev/supporting#visual-studio-code
 		"vscode": {

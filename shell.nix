@@ -9,5 +9,9 @@ pkgs.mkShell {
   
   shellHook = ''
     echo "Dart development environment loaded"
+    # Ensure dependencies are fetched
+    if [ -f pubspec.yaml ]; then
+      dart pub get
+    fi
   '';
 }

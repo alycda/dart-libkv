@@ -21,11 +21,18 @@ present:
 [working-directory: 'deps/kv']
 test: clean
     make check
-    
-# Clean C artifacts
+
+# Clean C artifacts only (default clean)
 [working-directory: 'deps/kv']
 clean:
     make clean
+
+# Clean C and Dart artifacts
+clean-all: clean
+    rm -rf .dart_tool .packages pubspec.lock
+
+# Clean and reinstall Dart dependencies
+clean-get: clean-all install
 
 # Clean and rebuild C library
 [working-directory: 'deps/kv']

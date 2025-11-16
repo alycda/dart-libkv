@@ -48,6 +48,22 @@ typedef StoreDestroyDart = void Function(Pointer<Store>);
 final _storeDestroy = kvlib
   .lookupFunction<StoreDestroyC, StoreDestroyDart>('store_destroy');
 
+// C: store_put
+typedef StorePutC = Int32 Function(
+  Pointer<Store>,         // store
+  Pointer<Utf8>,          // key
+  Pointer<Void>,          // value
+  Size                    // value_size
+);
+typedef StorePutDart = int Function(
+  Pointer<Store>,         // store
+  Pointer<Utf8>,          // key
+  Pointer<Void>,          // value
+  int                     // value_size
+);
+final _storePut = kvlib
+  .lookupFunction<StorePutC, StorePutDart>('store_put');
+
 void main() {
   final lib = kvlib;
   

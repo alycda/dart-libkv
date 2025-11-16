@@ -1,12 +1,13 @@
 # dart-libkv
 
 ## Commands
-
 > run `just --list` to see all available commands
 
+- `just install` - installs dart dependencies
 - `just build` - build C lib
 - `just run` - run the dart app
 - `just check` - validate C and Dart
+- `just clean` - removes dart artifacts
 - `just present` - terminal slideshow
 
 ## Quickstart

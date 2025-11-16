@@ -1,3 +1,15 @@
+# Default recipe - build and run
+# note that the FIRST recipe is ALWAYS the default, the recipe name DOES NOT MATTER
+default: build run
+
+# Check C and Dart code
+check: test
+    dart analyze
+
+# Run the Dart application (assumes C library is built)
+run:
+    dart src/kv_store.dart
+
 # Run C tests
 [working-directory: 'deps/kv']
 test: clean
@@ -10,5 +22,5 @@ clean:
 
 # Clean and rebuild C library
 [working-directory: 'deps/kv']
-build-libkv: clean
+build: clean
     make

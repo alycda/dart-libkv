@@ -1,5 +1,13 @@
 # dart-libkv
 
+## Commands
+
+> run `just --list` to see all available commands
+
+- `just build` - build C lib
+- `just run` - run the dart app
+- `just check` - validate C and Dart
+
 ## Quickstart
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alycda/ditto-takehome)
 
@@ -41,3 +49,8 @@ Install Dart SDK manually and run:
 ```bash
 dart pub get
 ```
+-----
+
+### Resources
+
+- https://learnxinyminutes.com/dart/

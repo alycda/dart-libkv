@@ -14,10 +14,13 @@
 		// Configure properties specific to VS Code. See https://containers.dev/supporting#visual-studio-code
 		"vscode": {
 			// Set *default* container specific settings.json values on container create.
-			"settings": {},
+			"settings": {
+        "dart.sdkPath": "${env:HOME}/.nix-profile/bin/dart"
+      },
 			"extensions": [
         "jnoortheen.nix-ide",
         "skellock.just"
+        // "dart-code.dart-code" // dart sdk is not ready yet because it's installed with nix-env LATER. Install dart in the `postCreateCommand` to use the extension here, otherwise it's fine in extensions.json
       ]
 		}
   }

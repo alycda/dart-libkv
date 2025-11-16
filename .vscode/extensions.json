@@ -2,7 +2,8 @@
     "recommendations": [
         "ms-vscode-remote.remote-containers",
         "ms-vscode.makefile-tools",
-        "nefrob.vscode-just-syntax"
+        "nefrob.vscode-just-syntax",
+        "dart-code.dart-code"
     ],
     "unwantedRecommendations": [
         "kokakiwi.vscode-just"

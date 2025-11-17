@@ -221,47 +221,147 @@ class KeyValueStore {
 }
 
 void main() {
-  // C: store_create
+  print('Running Dart FFI tests...\n');
+
+  // Test 1: create_destroy & initial size
   final store = KeyValueStore();
-  print('store: ${store}');
+  print('✓ Store created, initial size: ${store.size}');
+  if (store.size != 0) {
+    throw Exception('Expected size 0, got ${store.size}');
+  }
 
   try {
-    // C: store_put
-    print('Put values...');
+    // Test 2: put_get_string
+    print('\n✓ Testing put/get...');
     store.put('name', 'Alyssa');
     store.put('language', 'Dart');
-    
-    // C: store_get
-    print('\nGet values...');
-    print('name: ${store.get('name')}, ');
-    print('language: ${store.get('language')}');
-    
-    // C: store_delete
-    store.delete('language');
+    print('  name: ${store.get('name')}');
+    print('  language: ${store.get('language')}');
+    if (store.size != 2) {
+      throw Exception('Expected size 2, got ${store.size}');
+    }
 
-    // C: store_exists
-    print('name exists: ${store.exists('name')}');
-    print('language exists: ${store.exists('language')}');
-    // C: store_size
-    print('\nSize: ${store.size}');
+    // Test 3: put_replace (overwrite existing key)
+    print('\n✓ Testing key replacement...');
+    store.put('language', 'Rust');
+    final updated = store.get('language');
+    print('  language updated: $updated');
+    if (updated != 'Rust') {
+      throw Exception('Expected "Rust", got "$updated"');
+    }
+    if (store.size != 2) {
+      throw Exception('Size should still be 2 after replace');
+    }
 
+    // Test 4: get_notfound
+    print('\n✓ Testing get non-existent key...');
+    final missing = store.get('missing');
+    print('  get("missing"): $missing');
+    if (missing != null) {
+      throw Exception('Expected null for missing key');
+    }
+
+    // Test 5: exists
+    print('\n✓ Testing exists...');
+    print('  exists("name"): ${store.exists('name')}');
+    print('  exists("missing"): ${store.exists('missing')}');
+    if (!store.exists('name') || store.exists('missing')) {
+      throw Exception('exists() check failed');
+    }
+
+    // Test 6: delete
+    print('\n✓ Testing delete...');
+    final deleted = store.delete('language');
+    print('  delete("language"): $deleted');
+    print('  exists("language"): ${store.exists('language')}');
+    if (!deleted || store.exists('language')) {
+      throw Exception('Delete failed');
+    }
     if (store.size != 1) {
-      throw Exception("memory leak?");
+      throw Exception('Expected size 1 after delete, got ${store.size}');
     }
-    
-    // C: store_clear
+
+    // Test 7: delete non-existent
+    final notDeleted = store.delete('missing');
+    print('  delete("missing"): $notDeleted');
+    if (notDeleted) {
+      throw Exception('Deleting non-existent key should return false');
+    }
+
+    // Test 8: multiple entries
+    print('\n✓ Testing multiple entries...');
+    for (int i = 0; i < 10; i++) {
+      store.put('key$i', 'value$i');
+    }
+    print('  Added 10 entries, size: ${store.size}');
+    if (store.size != 11) { // 1 (name) + 10 new
+      throw Exception('Expected size 11, got ${store.size}');
+    }
+
+    // Verify all entries
+    for (int i = 0; i < 10; i++) {
+      final val = store.get('key$i');
+      if (val != 'value$i') {
+        throw Exception('Expected "value$i", got "$val"');
+      }
+    }
+    print('  ✓ All entries verified');
+
+    // Test 9: empty key
+    print('\n✓ Testing empty key...');
+    store.put('', 'empty key value');
+    final emptyVal = store.get('');
+    print('  get(""): $emptyVal');
+    if (emptyVal != 'empty key value') {
+      throw Exception('Empty key test failed');
+    }
+
+    // Test 10: long key
+    print('\n✓ Testing long key...');
+    final longKey = 'a' * 100;
+    store.put(longKey, 'long key value');
+    final longVal = store.get(longKey);
+    if (longVal != 'long key value') {
+      throw Exception('Long key test failed');
+    }
+
+    // Test 11: clear
+    print('\n✓ Testing clear...');
+    print('  Size before clear: ${store.size}');
     store.clear();
-
+    print('  Size after clear: ${store.size}');
     if (store.size != 0) {
-      throw Exception("memory leak?");
+      throw Exception('Clear failed, size: ${store.size}');
     }
+    if (store.exists('name')) {
+      throw Exception('Keys still exist after clear');
+    }
+
+    // Test 12: use after clear
+    print('\n✓ Testing use after clear...');
+    store.put('new_key', 'new_value');
+    if (store.size != 1) {
+      throw Exception('Cannot use store after clear');
+    }
+
   } finally {
-    // C: store_destroy
+    // Test 13: dispose
+    print('\n✓ Testing dispose...');
     store.dispose();
+    if (store._store != null) {
+      throw Exception('Store pointer not nullified after dispose');
+    }
+    print('  Store destroyed successfully');
   }
 
-  // assert null pointer
-  if(store._store != null) {
-    throw Exception("Store was not destroyed");
+  // Test 14: use after dispose
+  print('\n✓ Testing use after dispose...');
+  try {
+    store.put('fail', 'should throw');
+    throw Exception('Should not be able to use store after dispose');
+  } catch (e) {
+    print('  ✓ Correctly threw: $e');
   }
+
+  print('\n🎉 All tests passed!');
 }

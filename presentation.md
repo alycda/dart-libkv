@@ -15,6 +15,7 @@ Building Dart FFI bindings for a C key-value store library
 3. Dart wrapper API
 4. Testing
 5. Challenges & Key Takeaways
+6. Bonus!
 
 <!-- 
 **Topics:**
@@ -281,7 +282,7 @@ end_line: 220
 
 <!-- NOTE:
 language is set to `java` because presenterm doesn't support `dart` -->
-```file +line_numbers
+```file
 path: src/kv_store.dart
 language: java
 start_line: 207
@@ -341,17 +342,11 @@ All follow the same pattern:
 - `size` - getter, no memory allocation needed
 - `clear()` - void, no memory allocation needed
 
-```java
-bool delete(String key) {
-  _checkStore();
-  final keyPtr = key.toNativeUtf8();
-  try {
-    final result = _storeDelete(_store!, keyPtr);
-    return result == StoreError.ok;
-  } finally {
-    malloc.free(keyPtr);
-  }
-}
+```file
+path: src/kv_store.dart
+language: java
+start_line: 169
+end_line: 180
 ```
 
 <!-- end_slide -->
@@ -439,14 +434,74 @@ final actualPtr = ptrPtr.value;  // Dereference
 
 <!-- end_slide -->
 
+# 6. Bonus: Interactive REPL
+
+**Beyond tests - a usable demo!**
+
+Added an interactive Read-Eval-Print Loop for hands-on exploration:
+
+```bash
+$ just repl
+===================================
+  Dart FFI Key-Value Store REPL
+===================================
+
+Store created. Type "help" for commands.
+
+kv> put name Alyssa
+✓ Stored: "name" => "Alyssa"
+
+kv> get name
+✓ "name" => "Alyssa"
+
+kv> size
+Store contains 1 entries
+```
+
+<!-- end_slide -->
+
+# 6.1 REPL Implementation
+
+**Command-line argument parsing:**
+<!-- ```file
+path: src/kv_store.dart
+language: java
+start_line: 369
+end_line: 382
+``` -->
+
+```java
+void main(List<String> args) {
+  if (args.contains('--test') || args.contains('-t')) {
+    runTests();
+  } else if (args.contains('--repl') || args.contains('-r')) {
+    runRepl();
+  } else {
+    // Default: show usage and run tests
+    runTests();
+  }
+}
+```
+
+**Available commands:**
+- `put <key> <value>` - Store data
+- `get <key>` - Retrieve data
+- `delete <key>` - Remove entry
+- `exists <key>` - Check existence
+- `size` - Show entry count
+- `clear` - Clear all
+- `exit/quit` - Exit cleanly (calls dispose!)
+
+<!-- end_slide -->
+
 # Questions?
 
 **Project Structure:**
 ```
 ├── src/
-│   └── kv_store.dart     # Dart FFI bindings + demo app
+│   └── kv_store.dart     # Dart FFI bindings + wrapper + tests + REPL
 ├── deps/kv/
-│   ├── include/store.h   # C header 
+│   ├── include/store.h   # C header
 │   ├── src/store.c       # C implementation (modified)
 │   └── lib/libkv.dylib   # Compiled shared library
 └── README.md
@@ -456,7 +511,8 @@ final actualPtr = ptrPtr.value;  // Dereference
 ```bash
 just install  # Install Dart dependencies
 just build    # Build C library
-just run      # Run tests
+just run      # Run automated tests
+just repl     # Interactive REPL mode
 just present  # View this presentation
 ```
 

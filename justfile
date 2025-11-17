@@ -14,6 +14,10 @@ check: test
 run:
     dart src/kv_store.dart
 
+# Run the interactive REPL
+repl:
+    dart src/kv_store.dart --repl
+
 present:
     presenterm presentation.md
 

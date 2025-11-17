@@ -5,7 +5,8 @@
 
 - `just install` - installs dart dependencies
 - `just build` - build C lib
-- `just run` - run the dart app
+- `just run` - run unit tests
+- `just repl` - interactive REPL mode
 - `just check` - validate C and Dart
 - `just clean` - removes dart artifacts
 - `just present` - terminal slideshow

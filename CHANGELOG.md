@@ -1,3 +1,4 @@
+- added REPL
 - created final presentation
 - created FFI bindings
 - changed the build from static to dynamic

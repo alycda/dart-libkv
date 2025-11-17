@@ -220,7 +220,7 @@ class KeyValueStore {
   }
 }
 
-void main() {
+void runTests() {
   print('Running Dart FFI tests...\n');
 
   // Test 1: create_destroy & initial size
@@ -364,4 +364,122 @@ void main() {
   }
 
   print('\n🎉 All tests passed!');
+}
+
+void main(List<String> args) {
+  if (args.contains('--test') || args.contains('-t')) {
+    runTests();
+  } else if (args.contains('--repl') || args.contains('-r')) {
+    runRepl();
+  } else {
+    // Default: show usage and run tests
+    print('Usage:');
+    print('  dart src/kv_store.dart --test   # Run tests (default)');
+    print('  dart src/kv_store.dart --repl   # Interactive REPL');
+    print('');
+    runTests();
+  }
+}
+
+void runRepl() {
+  print('===================================');
+  print('  Dart FFI Key-Value Store REPL');
+  print('===================================\n');
+
+  final store = KeyValueStore();
+  print('Store created. Type "help" for commands.\n');
+
+  while (true) {
+    stdout.write('kv> ');
+    final input = stdin.readLineSync();
+
+    if (input == null || input.trim().isEmpty) {
+      continue;
+    }
+
+    final parts = input.trim().split(RegExp(r'\s+'));
+    final command = parts[0].toLowerCase();
+
+    try {
+      switch (command) {
+        case 'help':
+          print('Available commands:');
+          print('  put <key> <value>  - Store a key-value pair');
+          print('  get <key>          - Retrieve a value by key');
+          print('  delete <key>       - Delete a key');
+          print('  exists <key>       - Check if key exists');
+          print('  size               - Show number of entries');
+          print('  clear              - Remove all entries');
+          print('  list               - List all keys (not implemented in C lib)');
+          print('  exit, quit         - Exit the REPL');
+          print('  help               - Show this help message');
+
+        case 'put':
+          if (parts.length < 3) {
+            print('Usage: put <key> <value>');
+            break;
+          }
+          final key = parts[1];
+          final value = parts.sublist(2).join(' ');
+          store.put(key, value);
+          print('✓ Stored: "$key" => "$value"');
+
+        case 'get':
+          if (parts.length < 2) {
+            print('Usage: get <key>');
+            break;
+          }
+          final key = parts[1];
+          final value = store.get(key);
+          if (value != null) {
+            print('✓ "$key" => "$value"');
+          } else {
+            print('✗ Key "$key" not found');
+          }
+
+        case 'delete':
+        case 'del':
+          if (parts.length < 2) {
+            print('Usage: delete <key>');
+            break;
+          }
+          final key = parts[1];
+          if (store.delete(key)) {
+            print('✓ Deleted "$key"');
+          } else {
+            print('✗ Key "$key" not found');
+          }
+
+        case 'exists':
+          if (parts.length < 2) {
+            print('Usage: exists <key>');
+            break;
+          }
+          final key = parts[1];
+          final exists = store.exists(key);
+          print(exists ? '✓ Key "$key" exists' : '✗ Key "$key" does not exist');
+
+        case 'size':
+          print('Store contains ${store.size} entries');
+
+        case 'clear':
+          store.clear();
+          print('✓ Store cleared');
+
+        case 'exit':
+        case 'quit':
+          print('Goodbye!');
+          store.dispose();
+          return;
+
+        default:
+          print('Unknown command: $command');
+          print('Type "help" for available commands');
+      }
+    } catch (e) {
+      print('✗ Error: $e');
+    }
+
+    print('');  // Empty line for readability
+  }
 }

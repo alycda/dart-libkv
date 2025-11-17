@@ -1,3 +1,4 @@
+- created final presentation
 - created FFI bindings
 - changed the build from static to dynamic
 - added Justfile task runner

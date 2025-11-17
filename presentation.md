@@ -14,6 +14,14 @@ Building Dart FFI bindings for a C key-value store library
 2. create FFI bindings
 3. Dart wrapper API
 4. Testing
+5. Challenges & Key Takeaways
+
+<!-- 
+**Topics:**
+- FFI architecture & data flow
+- Memory management & safety
+- Lessons learned
+- Handling blocking I/O (TODO!) -->
 
 <!-- end_slide -->
 
@@ -25,38 +33,42 @@ Building Dart FFI bindings for a C key-value store library
 2. Change library name from `.a` to `.dylib`
 3. Use `-shared` flag when linking
 
-```file +line_numbers
-path: deps/kv/Makefile
-language: makefile
-start_line: 3
-end_line: 3
+```diff
+# Compiler and flags
+CC = gcc
+- CFLAGS = -Wall -Wextra -Werror -std=c11 -pedantic -D_POSIX_C_SOURCE=200809L
++ CFLAGS = -Wall -Wextra -Werror -std=c11 -pedantic -D_POSIX_C_SOURCE=200809L -fPIC
 ```
 
-```file +line_numbers
-path: deps/kv/Makefile
-language: makefile
-start_line: 24
-end_line: 25
+```diff
+# Library
+- LIB_NAME = libkv.a
++ LIB_NAME = libkv.dylib
 ```
 
-```file +line_numbers
-path: deps/kv/Makefile
-language: makefile
-start_line: 48
-end_line: 49
+```diff
+# Build library
+$(LIB): $(OBJECTS) | $(LIB_DIR)
+-     ar rcs $@ $^
++     $(CC) -shared -o $@ $^ $(LDFLAGS)
 ```
+
 
 **Why?** Dart FFI requires dynamic libraries, not static archives.
 
 <!-- end_slide -->
 
+<!-- skip_slide -->
+
 # 1.1 Loading the Library: Cross-Platform Paths
 
 **Challenge:** Need to load the library on both macOS and Linux
 
-```file +line_numbers
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` and this provides reasonable syntax highlighting -->
+```file
 path: src/kv_store.dart
-language: dart
+language: java
 start_line: 6
 end_line: 16
 ```
@@ -70,21 +82,23 @@ end_line: 16
 
 # 2. FFI Foundations: Opaque Types
 
-**Problem:** C library uses `store_t*` (opaque pointer to internal struct)
+**Background**  
+The C library exposes `store_t*`, an opaque pointer to an internal struct whose layout is hidden from callers.
 
-**Solution:** Dart's `Opaque` type
+**Dart Mapping**  
+In Dart we represent this with an `Opaque` subclass:
 
-```file +line_numbers
-path: src/kv_store.dart
-language: dart
-start_line: 18
-end_line: 18
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
+```java
+final class Store extends Opaque {}
 ```
 
-**Why Opaque?**
-- We don't need to know the internal structure
-- C library owns the memory
-- We just pass the pointer around
+**Why use an opaque type?**
+
+- The internal structure isn’t needed in Dart code.
+- Memory management remains the responsibility of the C library.
+- Dart only needs to hold and forward the pointer.
 
 <!-- end_slide -->
 
@@ -92,11 +106,22 @@ end_line: 18
 
 **C library returns error codes** (int: 0 = success, negative = error)
 
-```file +line_numbers
+**in Dart:**
+<!-- NOTE:
+language is set to `kotlin` because presenterm doesn't support `dart` and this provides reasonable syntax highlighting FOR THIS CODE SNIPPET -->
+```file
 path: src/kv_store.dart
-language: dart
+language: kotlin
 start_line: 20
 end_line: 37
+```
+
+**in C:**
+```file
+path: deps/kv/include/store.h
+language: c
+start_line: 13
+end_line: 19
 ```
 
 **Design decision:** Keep C-style codes in Dart, convert to messages when needed
@@ -124,23 +149,23 @@ end_line: 37
 # 2.3 Data Flow: Dart → C
 
 ```
-┌─────────────────────────────────────────────────┐
-│ Dart Application Layer                          │
-│  store.put("name", "Alyssa")                    │
-└──────────────────┬──────────────────────────────┘
+┌──────────────────────────────┐
+│ Dart Application Layer       │
+│  store.put("name", "Alyssa") │
+└──────────────────┬───────────┘
                    │
-┌──────────────────▼──────────────────────────────┐
-│ Dart FFI Binding Layer                          │
-│  - Convert Dart String → Pointer<Utf8>          │
-│  - Allocate memory (malloc)                     │
-│  - Call C function                              │
-└──────────────────┬──────────────────────────────┘
+┌──────────────────▼─────────────────────┐
+│ Dart FFI Binding Layer                 │
+│  - Convert Dart String → Pointer<Utf8> │
+│  - Allocate memory (malloc)            │
+│  - Call C function                     │
+└──────────────────┬─────────────────────┘
                    │
-┌──────────────────▼──────────────────────────────┐
-│ C Library (libkv.dylib)                         │
-│  - store_put(store, key, value, size)           │
-│  - Allocate & copy data in C heap               │
-└─────────────────────────────────────────────────┘
+┌──────────────────▼────────────────────┐
+│ C Library (libkv.dylib)               │
+│  - store_put(store, key, value, size) │
+│  - Allocate & copy data in C heap     │
+└───────────────────────────────────────┘
 ```
 
 <!-- end_slide -->
@@ -148,23 +173,23 @@ end_line: 37
 # 2.4 Data Flow: C → Dart
 
 ```
-┌─────────────────────────────────────────────────┐
-│ C Library Returns                               │
-│  - Pointer to C-owned memory                    │
-│  - Size of data                                 │
-└──────────────────┬──────────────────────────────┘
+┌───────────────────────────────┐
+│ C Library Returns             │
+│  - Pointer to C-owned memory  │
+│  - Size of data               │
+└──────────────────┬────────────┘
                    │
-┌──────────────────▼──────────────────────────────┐
-│ Dart FFI Binding Layer                          │
-│  - asTypedList() to view C memory               │
-│  - String.fromCharCodes() to copy data          │
-│  - Free allocated Dart pointers (NOT C data!)   │
-└──────────────────┬──────────────────────────────┘
+┌──────────────────▼────────────────────────────┐
+│ Dart FFI Binding Layer                        │
+│  - asTypedList() to view C memory             │
+│  - String.fromCharCodes() to copy data        │
+│  - Free allocated Dart pointers (NOT C data!) │
+└──────────────────┬────────────────────────────┘
                    │
-┌──────────────────▼──────────────────────────────┐
-│ Dart Application                                │
-│  String? value = store.get("name")              │
-└─────────────────────────────────────────────────┘
+┌──────────────────▼─────────────────┐
+│ Dart Application                   │
+│  String? value = store.get("name") │
+└────────────────────────────────────┘
 ```
 
 <!-- end_slide -->
@@ -188,23 +213,27 @@ end_line: 37
 
 # 2.6 Memory Safety Pattern
 
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
 **The Dart Side:**
-```dart
-void put(String key, String value) {
-  final keyPtr = key.toNativeUtf8();     // Allocate
-  final valuePtr = value.toNativeUtf8(); // Allocate
-
-  try {
-    _storePut(_store!, keyPtr, valuePtr.cast(),
-              valuePtr.length);
-  } finally {
-    malloc.free(keyPtr);      // ALWAYS free
-    malloc.free(valuePtr);    // Even on exception!
-  }
-}
+```file
+path: src/kv_store.dart
+language: java
+start_line: 120
+end_line: 135
 ```
 
 **The C Side:**
+
+!! TODO !!
+
+<!-- ```file 
+path: deps/kv/src/store.c
+language: c
+start_line: 100
+end_line: 114
+```
+
 ```c
 int store_get(store_t* store, const char* key,
               const void** value_out, size_t* value_size_out) {
@@ -212,7 +241,7 @@ int store_get(store_t* store, const char* key,
     *value_size_out = store->entries[i].value_size;
     return STORE_OK;
 }
-```
+``` -->
 
 **Critical:** Dart must NOT free the returned pointer - C library owns it
 
@@ -232,23 +261,29 @@ int store_get(store_t* store, const char* key,
 
 # 3.1 Constructor & Lifecycle
 
-```file +line_numbers
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
+```file
 path: src/kv_store.dart
-language: dart
+language: java
 start_line: 108
 end_line: 117
 ```
 
-```file +line_numbers
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
+```file
 path: src/kv_store.dart
-language: dart
+language: java
 start_line: 215
 end_line: 220
 ```
 
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
 ```file +line_numbers
 path: src/kv_store.dart
-language: dart
+language: java
 start_line: 207
 end_line: 213
 ```
@@ -262,9 +297,11 @@ end_line: 213
 
 # 3.2 Writing Data: put()
 
-```file +line_numbers
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
+```file
 path: src/kv_store.dart
-language: dart
+language: java
 start_line: 119
 end_line: 135
 ```
@@ -278,9 +315,11 @@ end_line: 135
 
 # 3.3 Reading Data: get()
 
-```file +line_numbers
+<!-- NOTE:
+language is set to `java` because presenterm doesn't support `dart` -->
+```file
 path: src/kv_store.dart
-language: dart
+language: java
 start_line: 137
 end_line: 167
 ```
@@ -302,7 +341,7 @@ All follow the same pattern:
 - `size` - getter, no memory allocation needed
 - `clear()` - void, no memory allocation needed
 
-```dart
+```java
 bool delete(String key) {
   _checkStore();
   final keyPtr = key.toNativeUtf8();
@@ -342,7 +381,7 @@ Running Dart FFI tests...
 
 <!-- end_slide -->
 
-# Challenges & Lessons Learned
+# 5. Challenges & Lessons Learned
 
 **1. Relative paths don't work with Nix/hardened programs**
 - Solution: Use `Platform.script.toFilePath()` for absolute paths
@@ -360,7 +399,7 @@ Running Dart FFI tests...
 
 <!-- end_slide -->
 
-# Challenges & Lessons Learned (cont.)
+# 5. Challenges & Lessons Learned (cont.)
 
 **4. String encoding**
 - `toNativeUtf8()` allocates - must free!
@@ -368,7 +407,7 @@ Running Dart FFI tests...
 - C expects null-terminated strings
 
 **5. Pointer-to-pointer pattern**
-```dart
+```java
 final ptrPtr = malloc.allocate<Pointer<Void>>(sizeOf<Pointer<Void>>());
 final result = _storeGet(store, key, ptrPtr, sizePtr);
 final actualPtr = ptrPtr.value;  // Dereference
@@ -381,7 +420,7 @@ final actualPtr = ptrPtr.value;  // Dereference
 
 <!-- end_slide -->
 
-# Key Takeaways
+# 5.1 Key Takeaways
 
 **Safety First:**
 - Always use try/finally for malloc'd pointers

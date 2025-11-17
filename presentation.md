@@ -314,3 +314,111 @@ bool delete(String key) {
   }
 }
 ```
+
+<!-- end_slide -->
+
+# 4. Testing & Validation
+
+**Comprehensive test coverage in main():**
+- All CRUD operations (put, get, delete, exists, clear)
+- Edge cases (empty keys, long keys, missing keys, key replacement)
+- Multiple entries (10+ items)
+- Lifecycle (use after clear, use after dispose)
+- Memory leak detection (size checks throughout)
+
+**Mirrors C test suite** (`deps/kv/tests/test_store.c`)
+- Same test scenarios where applicable
+- String-only vs C's binary data (design choice)
+
+```bash
+$ just run
+Running Dart FFI tests...
+✓ Store created, initial size: 0
+✓ Testing put/get...
+✓ Testing key replacement...
+...
+🎉 All tests passed!
+```
+
+<!-- end_slide -->
+
+# Challenges & Lessons Learned
+
+**1. Relative paths don't work with Nix/hardened programs**
+- Solution: Use `Platform.script.toFilePath()` for absolute paths
+- Required adding `path` package
+
+**2. Static vs Dynamic libraries**
+- `.a` files cannot be used with Dart FFI
+- Must build `.dylib` (macOS) or `.so` (Linux)
+- Added `-fPIC` and `-shared` to Makefile
+
+**3. Memory ownership clarity**
+- Document who allocates and who frees
+- Use try/finally religiously
+- Never free C-owned memory from Dart
+
+<!-- end_slide -->
+
+# Challenges & Lessons Learned (cont.)
+
+**4. String encoding**
+- `toNativeUtf8()` allocates - must free!
+- `toNativeUtf8().length` includes null terminator
+- C expects null-terminated strings
+
+**5. Pointer-to-pointer pattern**
+```dart
+final ptrPtr = malloc.allocate<Pointer<Void>>(sizeOf<Pointer<Void>>());
+final result = _storeGet(store, key, ptrPtr, sizePtr);
+final actualPtr = ptrPtr.value;  // Dereference
+```
+
+**6. Testing disposal**
+- No need to compare `KeyValueStore` object with `nullptr` (Dart type safety)
+- DO need to check internal `_store` pointer
+- Or verify methods throw after dispose
+
+<!-- end_slide -->
+
+# Key Takeaways
+
+**Safety First:**
+- Always use try/finally for malloc'd pointers
+- Never free memory you don't own
+- Check for null/nullptr before use
+
+**Architecture:**
+- Clear separation: App → Bindings → C
+- Wrapper class for ergonomic API
+- Type safety through Dart's strong typing
+
+**Testing:**
+- Comprehensive edge case coverage
+- Lifecycle validation is critical
+- Memory leak detection through size checks
+
+<!-- end_slide -->
+
+# Questions?
+
+**Project Structure:**
+```
+├── src/
+│   └── kv_store.dart     # Dart FFI bindings + demo app
+├── deps/kv/
+│   ├── include/store.h   # C header 
+│   ├── src/store.c       # C implementation (modified)
+│   └── lib/libkv.dylib   # Compiled shared library
+└── README.md
+```
+
+**Running the code:**
+```bash
+just install  # Install Dart dependencies
+just build    # Build C library
+just run      # Run tests
+just present  # View this presentation
+```
+
+Thank you!

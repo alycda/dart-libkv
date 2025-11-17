@@ -12,7 +12,7 @@ Building Dart FFI bindings for a C key-value store library
 
 1. build dylib instead of static c lib
 2. create FFI bindings
-3. Dart wrapper
+3. Dart wrapper API
 
 <!-- end_slide -->
 
@@ -120,36 +120,99 @@ end_line: 37
 
 <!-- end_slide -->
 
-# 3. Dart Wrapper
+# 3. Dart Wrapper: Ergonomic API
 
-## constructor
+**Goal:** Hide FFI complexity, provide idiomatic Dart API
 
-### null Safety check
-
-<!-- end_slide -->
-
-# 3.2 Put
-
-<!-- end_slide -->
-
-# 3.3 Get
+**Core pattern:**
+- Constructor validates store creation
+- Every method checks store validity (`_checkStore()`)
+- All allocations cleaned up in `finally` blocks
+- Error codes → Dart exceptions
 
 <!-- end_slide -->
 
-# 3.4 Delete
+# 3.1 Constructor & Lifecycle
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 108
+end_line: 117
+```
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 215
+end_line: 220
+```
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 207
+end_line: 213
+```
+
+**Lifecycle management:**
+- Constructor throws if creation fails
+- `_checkStore()` prevents use-after-dispose
+- `dispose()` cleans up and nullifies pointer
 
 <!-- end_slide -->
 
-# 3.5 Exists
+# 3.2 Writing Data: put()
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 119
+end_line: 135
+```
+
+**Key patterns:**
+- `toNativeUtf8()` allocates → **must free**
+- `try/finally` ensures cleanup even on exception
+- Error codes converted to exceptions with helpful messages
 
 <!-- end_slide -->
 
-# 3.6 get size
+# 3.3 Reading Data: get()
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 137
+end_line: 167
+```
+
+**Critical distinction:**
+- `keyPtr`, `valuePtrPtr`, `sizePtr` → Dart allocated → **must free**
+- `valuePtr.value` → C allocated → **never free!**
+- Use `asTypedList()` to view C memory, `String.fromCharCodes()` to copy
 
 <!-- end_slide -->
 
-# 3.7 Clear
+# 3.4 Other Methods
 
-<!-- end_slide -->
+All follow the same pattern:
 
-# 3.8 Dispose
+**Simple operations:**
+- `delete(key)` - returns bool, same try/finally pattern
+- `exists(key)` - returns bool, no error handling needed
+- `size` - getter, no memory allocation needed
+- `clear()` - void, no memory allocation needed
+
+```dart
+bool delete(String key) {
+  _checkStore();
+  final keyPtr = key.toNativeUtf8();
+  try {
+    final result = _storeDelete(_store!, keyPtr);
+    return result == StoreError.ok;
+  } finally {
+    malloc.free(keyPtr);
+  }
+}
+```

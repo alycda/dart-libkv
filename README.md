@@ -7,6 +7,7 @@
 - `just build` - build C lib
 - `just run` - run unit tests
 - `just repl` - interactive REPL mode
+- `just run-blocking` - blocking I/O demonstration (async/isolates)
 - `just check` - validate C and Dart
 - `just clean` - removes dart artifacts
 - `just present` - terminal slideshow
@@ -68,3 +69,5 @@ dart pub get
 - https://learnxinyminutes.com/dart/
 - https://dart.dev/language
 - https://dart.dev/interop/c-interop
+- https://dart.dev/language/concurrency
+- https://dart.dev/language/async

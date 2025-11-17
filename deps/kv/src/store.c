@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>  // for usleep()
 
 typedef struct entry {
     char* key;
@@ -194,4 +195,26 @@ int store_get_key_at(store_t* store, size_t index, const char** key_out) {
 
     *key_out = store->entries[index].key;
     return STORE_OK;
+}
+
+/**
+ * Blocking get operation - simulates network/disk I/O
+ * This will block for delay_ms milliseconds before returning the value
+ *
+ * Use case: Demonstrates how to handle blocking I/O in Dart FFI
+ * - In single-threaded Dart, this will freeze the UI
+ * - Solution: Use Dart isolates or async FFI calls
+ */
+int store_get_blocking(store_t* store, const char* key,
+                      const void** value_out, size_t* value_size_out,
+                      unsigned int delay_ms) {
+    if (!store || !key || !value_out || !value_size_out) {
+        return STORE_ERR_INVALID;
+    }
+
+    /* Simulate network/disk I/O delay */
+    usleep(delay_ms * 1000);  /* usleep takes microseconds */
+
+    /* After delay, perform normal get */
+    return store_get(store, key, value_out, value_size_out);
 }

@@ -15,14 +15,16 @@ Building Dart FFI bindings for a C key-value store library
 3. Dart wrapper API
 4. Testing
 5. Challenges & Key Takeaways
-6. Bonus! (REPL + CSV Export)
+6. Bonus: Interactive REPL + CSV Export
+7. Next Steps: Blocking I/O
 
 <!--
 **Topics:**
 - FFI architecture & data flow
 - Memory management & safety
 - Lessons learned
-- CSV export with C iteration support -->
+- CSV export with C iteration support
+- Handling blocking I/O with isolates -->
 
 <!-- end_slide -->
 
@@ -53,7 +55,6 @@ $(LIB): $(OBJECTS) | $(LIB_DIR)
 -     ar rcs $@ $^
 +     $(CC) -shared -o $@ $^ $(LDFLAGS)
 ```
-
 
 **Why?** Dart FFI requires dynamic libraries, not static archives.
 
@@ -113,8 +114,8 @@ language is set to `kotlin` because presenterm doesn't support `dart` and this p
 ```file
 path: src/kv_store.dart
 language: kotlin
-start_line: 20
-end_line: 37
+start_line: 22
+end_line: 39
 ```
 
 **in C:**
@@ -220,8 +221,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 126
-end_line: 141
+start_line: 146
+end_line: 161
 ```
 
 **The C Side:**
@@ -267,8 +268,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 113
-end_line: 123
+start_line: 133
+end_line: 143
 ```
 
 <!-- NOTE:
@@ -276,8 +277,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 281
-end_line: 286
+start_line: 377
+end_line: 382
 ```
 
 <!-- NOTE:
@@ -285,8 +286,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 273
-end_line: 279
+start_line: 369
+end_line: 375
 ```
 
 **Lifecycle management:**
@@ -303,8 +304,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 125
-end_line: 141
+start_line: 146
+end_line: 161
 ```
 
 **Key patterns:**
@@ -321,8 +322,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 143
-end_line: 173
+start_line: 163
+end_line: 193
 ```
 
 **Critical distinction:**
@@ -345,8 +346,8 @@ All follow the same pattern:
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 175
-end_line: 186
+start_line: 195
+end_line: 206
 ```
 
 <!-- end_slide -->
@@ -525,6 +526,142 @@ kv> export data.csv
 
 <!-- end_slide -->
 
+# 7. Next Steps: Blocking I/O
+
+**The Challenge:**
+Many C functions block (network I/O, disk I/O, database calls)
+
+**The Problem:**
+Dart is single-threaded by default - blocking FFI calls freeze the event loop!
+
+```java
+// This BLOCKS the main thread for 500ms
+final value = store.getBlocking('key', delayMs: 500);
+// UI is frozen during this time!
+```
+
+**Real-world examples:**
+- Network requests (HTTP, database queries)
+- File I/O on slow disks
+- Cryptographic operations
+- Hardware communication
+
+<!-- end_slide -->
+
+# 7.1 Solution 1: Isolates
+
+**Run blocking calls in background isolates**
+
+```java
+// Non-blocking - runs in separate isolate
+Future<String?> getBlockingAsync(String key, {int delayMs = 1000}) async {
+  return await compute(_getBlockingInIsolate, {
+    'libraryPath': _getLibraryPath(),
+    'storePtr': _store!.address,
+    'key': key,
+    'delayMs': delayMs,
+  });
+}
+```
+
+**Key concepts:**
+- Each isolate needs to re-open the library (`DynamicLibrary.open()`)
+- Pass pointer addresses (integers) between isolates
+- Return results via `SendPort`/`ReceivePort`
+
+<!-- end_slide -->
+
+# 7.2 Solution 2: Parallel Execution
+
+**Multiple blocking calls can run in parallel**
+
+```java
+// Run 3 operations in parallel
+final futures = [
+  store.getBlockingAsync('name', delayMs: 500),
+  store.getBlockingAsync('role', delayMs: 500),
+  store.getBlockingAsync('project', delayMs: 500),
+];
+
+final results = await Future.wait(futures);
+// Total time: ~500ms (not 1500ms!)
+```
+
+**Benefits:**
+- Maximize throughput for I/O-bound operations
+- UI stays responsive
+- Natural Dart async/await patterns
+
+<!-- end_slide -->
+
+# 7.3 Solution 3: Streams
+
+**Process results as they arrive**
+
+```java
+Stream<MapEntry<String, String?>> getBlockingStream(
+  List<String> keys,
+  {int delayMs = 1000}
+) async* {
+  for (final key in keys) {
+    final value = await getBlockingAsync(key, delayMs: delayMs);
+    yield MapEntry(key, value);
+  }
+}
+
+// Use it
+await for (final entry in store.getBlockingStream(keys)) {
+  print('${entry.key} => ${entry.value}');
+  // Update UI progressively!
+}
+```
+
+<!-- end_slide -->
+
+# 7.4 Demo: Blocking I/O
+
+```bash
+$ just run-blocking
+
+--- Demo 1: Synchronous (blocks main thread) ---
+⚠️  Warning: This will block for 500ms...
+Result: Alyssa (took 500ms)
+
+--- Demo 2: Async (runs in background isolate) ---
+✓ Running in background isolate (non-blocking)...
+Result: Engineer (took 500ms)
+
+--- Demo 3: Multiple parallel async operations ---
+✓ Running in background isolate (non-blocking)...
+Results: [Alyssa, Engineer, Dart FFI]
+Total time: 500ms (parallel execution!)
+
+--- Demo 4: Stream-based processing ---
+  Received: name => Alyssa
+  Received: role => Engineer
+  Received: project => Dart FFI
+```
+
+<!-- end_slide -->
+
+# 7.5 Key Takeaways: Async FFI
+
+**Problem:**
+- Synchronous FFI blocks Dart's event loop
+- UI freezes, no async work can happen
+
+**Solutions:**
+1. **Isolates** - Offload blocking work to background threads
+2. **Future.wait()** - Parallel execution for multiple operations
+3. **Streams** - Progressive results for better UX
+
+**Implementation notes:**
+- Each isolate must re-open the library
+- Share pointer addresses (not pointers themselves)
+- Use `compute()` helper or manual `Isolate.spawn()`
+- Memory management still applies (free what you allocate!)
+
+<!-- end_slide -->
 # Questions?
 
 **Project Structure:**
@@ -540,11 +677,12 @@ kv> export data.csv
 
 **Running the code:**
 ```bash
-just install  # Install Dart dependencies
-just build    # Build C library
-just run      # Run automated tests
-just repl     # Interactive REPL mode
-just present  # View this presentation
+just install       # Install Dart dependencies
+just build         # Build C library
+just run           # Run automated tests
+just repl          # Interactive REPL mode
+just run-blocking  # Blocking I/O demo (isolates/async)
+just present       # View this presentation
 ```
 
 Thank you!

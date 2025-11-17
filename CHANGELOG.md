@@ -1,3 +1,4 @@
+- added blocking fn to c lib
 - added CSV export functionality (with iterator support in C)
 - added REPL
 - created final presentation

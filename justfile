@@ -18,12 +18,20 @@ run:
 repl:
     dart src/kv_store.dart --repl
 
+# Run the blocking I/O demonstration
+run-blocking:
+    dart src/kv_store.dart --blocking
+
 present:
     presenterm presentation.md
 
+# Run C and Dart tests
+test: test-c
+    dart src/kv_store.dart --test
+
 # Run C tests
 [working-directory: 'deps/kv']
-test: clean
+test-c: clean
     make check
 
 # Clean C artifacts only (default clean)

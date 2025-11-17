@@ -1,5 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:async';
+import 'dart:isolate';
 import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as path;
 
@@ -110,6 +112,24 @@ typedef StoreGetKeyAtDart = int Function(Pointer<Store>, int, Pointer<Pointer<Ut
 final _storeGetKeyAt = kvlib
   .lookupFunction<StoreGetKeyAtC, StoreGetKeyAtDart>('store_get_key_at');
 
+// C: store_get_blocking - Simulates slow I/O (network/disk)
+typedef StoreGetBlockingC = Int32 Function(
+  Pointer<Store>,         // store
+  Pointer<Utf8>,          // key
+  Pointer<Pointer<Void>>, // value_out
+  Pointer<Size>,          // value_size_out
+  Uint32                  // delay_ms
+);
+typedef StoreGetBlockingDart = int Function(
+  Pointer<Store>,         // store
+  Pointer<Utf8>,          // key
+  Pointer<Pointer<Void>>, // value_out
+  Pointer<Size>,          // value_size_out
+  int                     // delay_ms
+);
+final _storeGetBlocking = kvlib
+  .lookupFunction<StoreGetBlockingC, StoreGetBlockingDart>('store_get_blocking');
+
 // Dart Wrapper
 class KeyValueStore {
   Pointer<Store>? _store;
@@ -209,7 +229,7 @@ class KeyValueStore {
     _checkStore();
     _storeClear(_store!);
   }
-
+  
   /// Get all keys (for iteration)
   List<String> getAllKeys() {
     _checkStore();
@@ -270,6 +290,82 @@ class KeyValueStore {
     return field;
   }
 
+  // ============================================================
+  // BLOCKING I/O DEMONSTRATIONS
+  // ============================================================
+
+  /// Approach 1: SYNCHRONOUS (blocks UI) - THE PROBLEM
+  /// This will freeze the main isolate for delay_ms milliseconds
+  /// Use case: Shows why we need async handling
+  String? getBlocking(String key, {int delayMs = 1000}) {
+    _checkStore();
+
+    print('⚠️  Warning: This will block for ${delayMs}ms...');
+
+    final keyPtr = key.toNativeUtf8();
+    final valuePtrPtr = malloc.allocate<Pointer<Void>>(sizeOf<Pointer<Void>>());
+    final sizePtr = malloc.allocate<Size>(sizeOf<Size>());
+
+    try {
+      final result = _storeGetBlocking(_store!, keyPtr, valuePtrPtr, sizePtr, delayMs);
+
+      if (result == StoreError.notFound) {
+        return null;
+      }
+
+      if (result != StoreError.ok) {
+        throw Exception('Store error: ${StoreError.message(result)}');
+      }
+
+      final valuePtr = valuePtrPtr.value;
+      if (valuePtr == nullptr) {
+        return null;
+      }
+
+      final size = sizePtr.value;
+      final bytes = valuePtr.cast<Uint8>().asTypedList(size);
+      return String.fromCharCodes(bytes);
+    } finally {
+      malloc.free(keyPtr);
+      malloc.free(valuePtrPtr);
+      malloc.free(sizePtr);
+    }
+  }
+
+  /// Approach 2: ASYNC (non-blocking) using Future + compute
+  /// This runs the blocking operation in a background isolate
+  /// Use case: Keeps UI responsive during slow I/O
+  Future<String?> getBlockingAsync(String key, {int delayMs = 1000}) async {
+    _checkStore();
+
+    print('✓ Running in background isolate (non-blocking)...');
+
+    // Run the blocking operation in a separate isolate
+    return await compute(_getBlockingInIsolate, {
+      'libraryPath': _getLibraryPath(),
+      'storePtr': _store!.address,
+      'key': key,
+      'delayMs': delayMs,
+    });
+  }
+
+  /// Approach 3: STREAM-BASED for multiple operations
+  /// Returns a stream that emits results as they complete
+  /// Use case: Multiple slow operations, process results as they arrive
+  Stream<MapEntry<String, String?>> getBlockingStream(
+    List<String> keys,
+    {int delayMs = 1000}
+  ) async* {
+    _checkStore();
+
+    print('✓ Processing ${keys.length} keys as stream...');
+
+    for (final key in keys) {
+      final value = await getBlockingAsync(key, delayMs: delayMs);
+      yield MapEntry(key, value);
+    }
+  }
+
   /// Destroy and free resources
   void dispose() {
     if (_store != null && _store != nullptr) {
@@ -284,6 +380,170 @@ class KeyValueStore {
       throw Exception('Store does not exist (disposed or never created)');
     }
   }
+}
+
+// ============================================================
+// ISOLATE HELPER FUNCTIONS FOR ASYNC FFI
+// ============================================================
+
+/// Helper function to run blocking get in a separate isolate
+/// This is the worker function that runs in the background
+String? _getBlockingInIsolate(Map<String, dynamic> params) {
+  // Re-open library in this isolate
+  final lib = DynamicLibrary.open(params['libraryPath'] as String);
+
+  // Re-lookup the function
+  final storeGetBlocking = lib.lookupFunction<
+    Int32 Function(Pointer<Store>, Pointer<Utf8>, Pointer<Pointer<Void>>, Pointer<Size>, Uint32),
+    int Function(Pointer<Store>, Pointer<Utf8>, Pointer<Pointer<Void>>, Pointer<Size>, int)
+  >('store_get_blocking');
+
+  // Reconstruct the store pointer from address
+  final store = Pointer<Store>.fromAddress(params['storePtr'] as int);
+  final key = (params['key'] as String).toNativeUtf8();
+  final delayMs = params['delayMs'] as int;
+
+  final valuePtrPtr = malloc.allocate<Pointer<Void>>(sizeOf<Pointer<Void>>());
+  final sizePtr = malloc.allocate<Size>(sizeOf<Size>());
+
+  try {
+    final result = storeGetBlocking(store, key, valuePtrPtr, sizePtr, delayMs);
+
+    if (result == StoreError.notFound) {
+      return null;
+    }
+
+    if (result != StoreError.ok) {
+      throw Exception('Store error: ${StoreError.message(result)}');
+    }
+
+    final valuePtr = valuePtrPtr.value;
+    if (valuePtr == nullptr) {
+      return null;
+    }
+
+    final size = sizePtr.value;
+    final bytes = valuePtr.cast<Uint8>().asTypedList(size);
+    return String.fromCharCodes(bytes);
+  } finally {
+    malloc.free(key);
+    malloc.free(valuePtrPtr);
+    malloc.free(sizePtr);
+  }
+}
+
+/// Simple compute implementation for running isolates
+/// (Dart's compute is from Flutter, we'll make our own)
+Future<R> compute<Q, R>(R Function(Q) callback, Q message) async {
+  final receivePort = ReceivePort();
+
+  await Isolate.spawn<_IsolateData<Q, R>>(
+    _isolateEntry,
+    _IsolateData(
+      callback: callback,
+      message: message,
+      sendPort: receivePort.sendPort,
+    ),
+  );
+
+  final result = await receivePort.first as R;
+  return result;
+}
+
+class _IsolateData<Q, R> {
+  final R Function(Q) callback;
+  final Q message;
+  final SendPort sendPort;
+
+  _IsolateData({
+    required this.callback,
+    required this.message,
+    required this.sendPort,
+  });
+}
+
+void _isolateEntry<Q, R>(_IsolateData<Q, R> data) {
+  final result = data.callback(data.message);
+  data.sendPort.send(result);
+}
+
+// ============================================================
+// BLOCKING I/O DEMO FUNCTION
+// ============================================================
+
+void runBlockingDemo() async {
+  print('\n' + '='*60);
+  print('  BLOCKING I/O DEMONSTRATION');
+  print('='*60 + '\n');
+
+  final store = KeyValueStore();
+
+  // Setup test data
+  store.put('name', 'Alyssa');
+  store.put('role', 'Engineer');
+  store.put('project', 'Dart FFI');
+
+  print('Loaded ${store.size} entries\n');
+
+  // ============================================================
+  // Demo 1: SYNCHRONOUS (blocks)
+  // ============================================================
+  print('--- Demo 1: Synchronous (blocks main thread) ---');
+  final start1 = DateTime.now();
+  final value1 = store.getBlocking('name', delayMs: 500);
+  final elapsed1 = DateTime.now().difference(start1).inMilliseconds;
+  print('Result: $value1 (took ${elapsed1}ms)\n');
+
+  // ============================================================
+  // Demo 2: ASYNC (non-blocking)
+  // ============================================================
+  print('--- Demo 2: Async (runs in background isolate) ---');
+  final start2 = DateTime.now();
+  final value2 = await store.getBlockingAsync('role', delayMs: 500);
+  final elapsed2 = DateTime.now().difference(start2).inMilliseconds;
+  print('Result: $value2 (took ${elapsed2}ms)\n');
+
+  // ============================================================
+  // Demo 3: PARALLEL async operations
+  // ============================================================
+  print('--- Demo 3: Multiple parallel async operations ---');
+  final start3 = DateTime.now();
+
+  final futures = [
+    store.getBlockingAsync('name', delayMs: 500),
+    store.getBlockingAsync('role', delayMs: 500),
+    store.getBlockingAsync('project', delayMs: 500),
+  ];
+
+  final results = await Future.wait(futures);
+  final elapsed3 = DateTime.now().difference(start3).inMilliseconds;
+
+  print('Results: $results');
+  print('Total time: ${elapsed3}ms (parallel execution!)\n');
+
+  // ============================================================
+  // Demo 4: STREAM processing
+  // ============================================================
+  print('--- Demo 4: Stream-based processing ---');
+  final start4 = DateTime.now();
+
+  await for (final entry in store.getBlockingStream(['name', 'role', 'project'], delayMs: 200)) {
+    print('  Received: ${entry.key} => ${entry.value}');
+  }
+
+  final elapsed4 = DateTime.now().difference(start4).inMilliseconds;
+  print('Total time: ${elapsed4}ms\n');
+
+  // Cleanup
+  store.dispose();
+
+  print('='*60);
+  print('Key Takeaways:');
+  print('  1. Synchronous FFI calls BLOCK the main thread');
+  print('  2. Use Isolates to run blocking calls in background');
+  print('  3. Futures enable parallel execution');
+  print('  4. Streams handle multiple async operations gracefully');
+  print('='*60 + '\n');
 }
 
 void runTests() {
@@ -437,11 +697,14 @@ void main(List<String> args) {
     runTests();
   } else if (args.contains('--repl') || args.contains('-r')) {
     runRepl();
+  } else if (args.contains('--blocking') || args.contains('-b')) {
+    runBlockingDemo();
   } else {
     // Default: show usage and run tests
     print('Usage:');
-    print('  dart src/kv_store.dart --test   # Run tests (default)');
-    print('  dart src/kv_store.dart --repl   # Interactive REPL');
+    print('  dart src/kv_store.dart --test              # Run tests (default)');
+    print('  dart src/kv_store.dart --repl              # Interactive REPL');
+    print('  dart src/kv_store.dart --blocking          # Blocking I/O demo');
     print('');
     runTests();
   }

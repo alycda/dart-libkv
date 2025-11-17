@@ -99,6 +99,21 @@ void store_clear(store_t* store);
  */
 int store_get_key_at(store_t* store, size_t index, const char** key_out);
 
+/**
+ * Get a value by key with simulated delay (blocking)
+ * Simulates slow I/O operations like network or disk access
+ *
+ * @param store The key-value store
+ * @param key Null-terminated key string
+ * @param value_out Pointer to receive value pointer (not copied)
+ * @param value_size_out Pointer to receive value size
+ * @param delay_ms Delay in milliseconds before returning
+ * @return STORE_OK on success, STORE_ERR_NOTFOUND if key doesn't exist
+ */
+int store_get_blocking(store_t* store, const char* key,
+                      const void** value_out, size_t* value_size_out,
+                      unsigned int delay_ms);
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,7 +15,7 @@ Building Dart FFI bindings for a C key-value store library
 
 <!-- end_slide -->
 
-# Building a Dynamic Library
+# 1. Building a Dynamic Library
 
 **Three key changes to the Makefile:**
 
@@ -48,7 +48,7 @@ end_line: 49
 
 <!-- end_slide -->
 
-# Loading the Library: Cross-Platform Paths
+# 1.1 Loading the Library: Cross-Platform Paths
 
 **Challenge:** Need to load the library on both macOS and Linux
 
@@ -63,3 +63,19 @@ end_line: 16
 - Use **absolute paths** (relative paths fail in Nix/hardened environments)
 - Detect platform at **runtime** (`Platform.isMacOS`)
 - Match Makefile platform detection for `.dylib` vs `.so`
+
+<!-- end_slide -->
+
+# 2. Type Mappings: C ↔ Dart
+
+| C Type | Dart FFI Type (C signature) | Dart Type (Dart signature) |
+|--------|----------------------------|---------------------------|
+| `void*` | `Pointer<Void>` | `Pointer<Void>` |
+| `char*` | `Pointer<Utf8>` | `Pointer<Utf8>` |
+| `size_t` | `Size` | `int` |
+| `int` | `Int32` | `int` |
+| `bool` | `Bool` | `bool` |
+| `void` | `Void` | `void` |
+| `struct store*` | `Pointer<Store>` | `Pointer<Store>` |
+
+**Note:** `Size` is platform-dependent (32-bit or 64-bit)

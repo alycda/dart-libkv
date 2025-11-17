@@ -11,7 +11,7 @@
 - `just present` - terminal slideshow
 
 ## Quickstart
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alycda/ditto-takehome)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alycda/dart-libkv)
 
 No installation required - **everything** is pre-configured for you.
 

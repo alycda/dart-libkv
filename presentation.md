@@ -120,6 +120,103 @@ end_line: 37
 
 <!-- end_slide -->
 
+# 2.3 Data Flow: Dart → C
+
+```
+┌─────────────────────────────────────────────────┐
+│ Dart Application Layer                          │
+│  store.put("name", "Alyssa")                    │
+└──────────────────┬──────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────┐
+│ Dart FFI Binding Layer                          │
+│  - Convert Dart String → Pointer<Utf8>          │
+│  - Allocate memory (malloc)                     │
+│  - Call C function                              │
+└──────────────────┬──────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────┐
+│ C Library (libkv.dylib)                         │
+│  - store_put(store, key, value, size)           │
+│  - Allocate & copy data in C heap               │
+└─────────────────────────────────────────────────┘
+```
+
+<!-- end_slide -->
+
+# 2.4 Data Flow: C → Dart
+
+```
+┌─────────────────────────────────────────────────┐
+│ C Library Returns                               │
+│  - Pointer to C-owned memory                    │
+│  - Size of data                                 │
+└──────────────────┬──────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────┐
+│ Dart FFI Binding Layer                          │
+│  - asTypedList() to view C memory               │
+│  - String.fromCharCodes() to copy data          │
+│  - Free allocated Dart pointers (NOT C data!)   │
+└──────────────────┬──────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────┐
+│ Dart Application                                │
+│  String? value = store.get("name")              │
+└─────────────────────────────────────────────────┘
+```
+
+<!-- end_slide -->
+
+# 2.5 Memory Management: Critical Concepts
+
+**Two Memory Spaces:**
+1. **Dart Heap** - Managed by Dart GC
+2. **C Heap** - Manual malloc/free
+
+**Who owns what?**
+
+| Memory | Allocated By | Freed By | Example |
+|--------|--------------|----------|---------|
+| Key pointer | Dart (toNativeUtf8) | Dart (malloc.free) | `keyPtr` |
+| Value pointer | Dart (toNativeUtf8) | Dart (malloc.free) | `valuePtr` |
+| C store data | C (malloc) | C (store_destroy) | Internal entries |
+| Returned value | C (existing) | C (never!) | `store_get` result |
+
+<!-- end_slide -->
+
+# 2.6 Memory Safety Pattern
+
+**The Dart Side:**
+```dart
+void put(String key, String value) {
+  final keyPtr = key.toNativeUtf8();     // Allocate
+  final valuePtr = value.toNativeUtf8(); // Allocate
+
+  try {
+    _storePut(_store!, keyPtr, valuePtr.cast(),
+              valuePtr.length);
+  } finally {
+    malloc.free(keyPtr);      // ALWAYS free
+    malloc.free(valuePtr);    // Even on exception!
+  }
+}
+```
+
+**The C Side:**
+```c
+int store_get(store_t* store, const char* key,
+              const void** value_out, size_t* value_size_out) {
+    *value_out = store->entries[i].value;  // ← C owns this!
+    *value_size_out = store->entries[i].value_size;
+    return STORE_OK;
+}
+```
+
+**Critical:** Dart must NOT free the returned pointer - C library owns it
+
+<!-- end_slide -->
+
 # 3. Dart Wrapper: Ergonomic API
 
 **Goal:** Hide FFI complexity, provide idiomatic Dart API

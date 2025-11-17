@@ -66,7 +66,44 @@ end_line: 16
 
 <!-- end_slide -->
 
-# 2. Type Mappings: C ↔ Dart
+# 2. FFI Foundations: Opaque Types
+
+**Problem:** C library uses `store_t*` (opaque pointer to internal struct)
+
+**Solution:** Dart's `Opaque` type
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 18
+end_line: 18
+```
+
+**Why Opaque?**
+- We don't need to know the internal structure
+- C library owns the memory
+- We just pass the pointer around
+
+<!-- end_slide -->
+
+# 2.1 Error Handling Strategy
+
+**C library returns error codes** (int: 0 = success, negative = error)
+
+```file +line_numbers
+path: src/kv_store.dart
+language: dart
+start_line: 20
+end_line: 37
+```
+
+**Design decision:** Keep C-style codes in Dart, convert to messages when needed
+- Later we'll throw exceptions in the wrapper class
+- But FFI bindings stay close to C
+
+<!-- end_slide -->
+
+# 2.2 Type Mappings: C ↔ Dart
 
 | C Type | Dart FFI Type (C signature) | Dart Type (Dart signature) |
 |--------|----------------------------|---------------------------|

@@ -15,14 +15,14 @@ Building Dart FFI bindings for a C key-value store library
 3. Dart wrapper API
 4. Testing
 5. Challenges & Key Takeaways
-6. Bonus!
+6. Bonus! (REPL + CSV Export)
 
-<!-- 
+<!--
 **Topics:**
 - FFI architecture & data flow
 - Memory management & safety
 - Lessons learned
-- Handling blocking I/O (TODO!) -->
+- CSV export with C iteration support -->
 
 <!-- end_slide -->
 
@@ -220,8 +220,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 120
-end_line: 135
+start_line: 126
+end_line: 141
 ```
 
 **The C Side:**
@@ -267,8 +267,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 108
-end_line: 117
+start_line: 113
+end_line: 123
 ```
 
 <!-- NOTE:
@@ -276,8 +276,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 215
-end_line: 220
+start_line: 281
+end_line: 286
 ```
 
 <!-- NOTE:
@@ -285,8 +285,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 207
-end_line: 213
+start_line: 273
+end_line: 279
 ```
 
 **Lifecycle management:**
@@ -303,8 +303,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 119
-end_line: 135
+start_line: 125
+end_line: 141
 ```
 
 **Key patterns:**
@@ -321,8 +321,8 @@ language is set to `java` because presenterm doesn't support `dart` -->
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 137
-end_line: 167
+start_line: 143
+end_line: 173
 ```
 
 **Critical distinction:**
@@ -345,8 +345,8 @@ All follow the same pattern:
 ```file
 path: src/kv_store.dart
 language: java
-start_line: 169
-end_line: 180
+start_line: 175
+end_line: 186
 ```
 
 <!-- end_slide -->
@@ -488,9 +488,40 @@ void main(List<String> args) {
 - `get <key>` - Retrieve data
 - `delete <key>` - Remove entry
 - `exists <key>` - Check existence
+- `list` - List all keys
 - `size` - Show entry count
+- `export [file]` - Export to CSV (console or file)
 - `clear` - Clear all
 - `exit/quit` - Exit cleanly (calls dispose!)
+
+<!-- end_slide -->
+
+# 6.2 CSV Export Feature
+
+**New capability: Export data to CSV format**
+
+```bash
+kv> put name Alyssa
+✓ Stored: "name" => "Alyssa"
+
+kv> put role "Software Engineer"
+✓ Stored: "role" => "Software Engineer"
+
+kv> list
+Keys (2):
+  - name
+  - role
+
+kv> export
+key,value
+name,Alyssa
+role,"Software Engineer"
+
+kv> export data.csv
+✓ Exported to "data.csv"
+```
+
+**Features:** Proper CSV escaping (commas, quotes), iteration via new C function
 
 <!-- end_slide -->
 

@@ -173,12 +173,25 @@ bool store_exists(store_t* store, const char* key) {
     if (!store || !key) {
         return false;
     }
-    
+
     for (size_t i = 0; i < store->size; i++) {
         if (strcmp(store->entries[i].key, key) == 0) {
             return true;
         }
     }
-    
+
     return false;
+}
+
+int store_get_key_at(store_t* store, size_t index, const char** key_out) {
+    if (!store || !key_out) {
+        return STORE_ERR_INVALID;
+    }
+
+    if (index >= store->size) {
+        return STORE_ERR_INVALID;
+    }
+
+    *key_out = store->entries[index].key;
+    return STORE_OK;
 }

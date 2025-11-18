@@ -1,3 +1,4 @@
+- added CSV export functionality (with iterator support in C)
 - added REPL
 - created final presentation
 - created FFI bindings

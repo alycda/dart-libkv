@@ -104,6 +104,12 @@ typedef StoreClearDart = void Function(Pointer<Store>);
 final _storeClear = kvlib
   .lookupFunction<StoreClearC, StoreClearDart>('store_clear');
 
+// C: store_get_key_at
+typedef StoreGetKeyAtC = Int32 Function(Pointer<Store>, Size, Pointer<Pointer<Utf8>>);
+typedef StoreGetKeyAtDart = int Function(Pointer<Store>, int, Pointer<Pointer<Utf8>>);
+final _storeGetKeyAt = kvlib
+  .lookupFunction<StoreGetKeyAtC, StoreGetKeyAtDart>('store_get_key_at');
+
 // Dart Wrapper
 class KeyValueStore {
   Pointer<Store>? _store;
@@ -204,6 +210,66 @@ class KeyValueStore {
     _storeClear(_store!);
   }
 
+  /// Get all keys (for iteration)
+  List<String> getAllKeys() {
+    _checkStore();
+
+    final count = size;
+    final keys = <String>[];
+
+    for (var i = 0; i < count; i++) {
+      final keyPtrPtr = malloc.allocate<Pointer<Utf8>>(sizeOf<Pointer<Utf8>>());
+      try {
+        final result = _storeGetKeyAt(_store!, i, keyPtrPtr);
+
+        if (result == StoreError.ok) {
+          final keyPtr = keyPtrPtr.value;
+          keys.add(keyPtr.toDartString());
+        }
+      } finally {
+        malloc.free(keyPtrPtr);
+      }
+    }
+
+    return keys;
+  }
+
+  /// Export all data to CSV format
+  String exportToCsv() {
+    _checkStore();
+
+    final buffer = StringBuffer();
+    buffer.writeln('key,value');
+
+    final keys = getAllKeys();
+    for (final key in keys) {
+      final value = get(key);
+      if (value != null) {
+        // Escape quotes and handle commas in CSV
+        final escapedKey = _escapeCsvField(key);
+        final escapedValue = _escapeCsvField(value);
+        buffer.writeln('$escapedKey,$escapedValue');
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  /// Write CSV data to a file
+  void exportToCsvFile(String filePath) {
+    final csv = exportToCsv();
+    File(filePath).writeAsStringSync(csv);
+  }
+
+  /// Escape CSV field (handle quotes and commas)
+  String _escapeCsvField(String field) {
+    if (field.contains(',') || field.contains('"') || field.contains('\n')) {
+      // Escape quotes by doubling them, then wrap in quotes
+      return '"${field.replaceAll('"', '""')}"';
+    }
+    return field;
+  }
+
   /// Destroy and free resources
   void dispose() {
     if (_store != null && _store != nullptr) {
@@ -211,7 +277,7 @@ class KeyValueStore {
       _store = null;
     }
   }
-  
+
   /// null safety check
   void _checkStore() {
     if (_store == null || _store == nullptr) {
@@ -409,8 +475,9 @@ void runRepl() {
           print('  delete <key>       - Delete a key');
           print('  exists <key>       - Check if key exists');
           print('  size               - Show number of entries');
+          print('  list               - List all keys');
           print('  clear              - Remove all entries');
-          print('  list               - List all keys (not implemented in C lib)');
+          print('  export [file]      - Export to CSV (prints or saves to file)');
           print('  exit, quit         - Exit the REPL');
           print('  help               - Show this help message');
 
@@ -462,9 +529,36 @@ void runRepl() {
         case 'size':
           print('Store contains ${store.size} entries');
 
+        case 'list':
+          final keys = store.getAllKeys();
+          if (keys.isEmpty) {
+            print('Store is empty');
+          } else {
+            print('Keys (${keys.length}):');
+            for (final key in keys) {
+              print('  - $key');
+            }
+          }
+
         case 'clear':
           store.clear();
           print('✓ Store cleared');
+
+        case 'export':
+          if (parts.length > 1) {
+            // Export to file
+            final filePath = parts[1];
+            try {
+              store.exportToCsvFile(filePath);
+              print('✓ Exported to "$filePath"');
+            } catch (e) {
+              print('✗ Failed to export: $e');
+            }
+          } else {
+            // Print CSV to console
+            final csv = store.exportToCsv();
+            print(csv);
+          }
 
         case 'exit':
         case 'quit':

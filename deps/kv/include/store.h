@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#ifdef _cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -84,10 +84,20 @@ size_t store_size(store_t* store);
 
 /**
  * Remove all entries from the store
- * 
+ *
  * @param store The key-value store
  */
 void store_clear(store_t* store);
+
+/**
+ * Get a key by index (for iteration)
+ *
+ * @param store The key-value store
+ * @param index Index of the entry (0 to size-1)
+ * @param key_out Pointer to receive key pointer (not copied, C-owned)
+ * @return STORE_OK on success, STORE_ERR_INVALID if index out of bounds
+ */
+int store_get_key_at(store_t* store, size_t index, const char** key_out);
 
 #ifdef __cplusplus
 }

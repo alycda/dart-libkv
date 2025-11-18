@@ -11,6 +11,14 @@
 - `just clean` - removes dart artifacts
 - `just present` - terminal slideshow
 
+## REPL Features
+
+The interactive REPL supports:
+- Basic operations: `put`, `get`, `delete`, `exists`
+- Data inspection: `list`, `size`
+- **CSV Export**: `export` (print) or `export filename.csv` (save to file)
+- Management: `clear`, `exit`
+
 ## Quickstart
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alycda/dart-libkv)
 
